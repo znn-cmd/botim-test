@@ -52,10 +52,36 @@ export function hasTranscript(transcript: string): boolean {
   return Boolean(transcript && transcript.trim().length > 10);
 }
 
+const ROLE_PATTERN =
+  /(?:^|\s)((?:бот|bot|assistant|ассистент|клиент|client|user|юзер|абонент))\s*[:：]\s*/gi;
+
+function roleFromLabel(label: string): DialogueTurn["role"] {
+  const lower = label.toLowerCase();
+  if (["bot", "бот", "assistant", "ассистент"].includes(lower)) return "bot";
+  if (["client", "клиент", "user", "юзер", "абонент"].includes(lower)) return "client";
+  return "unknown";
+}
+
 export function parseDialogueTurns(transcript: string): DialogueTurn[] {
   if (!transcript) return [];
 
-  const lines = transcript.split(/\n+/).filter((l) => l.trim());
+  const normalized = transcript.replace(/\r\n/g, "\n").trim();
+  const matches = [...normalized.matchAll(ROLE_PATTERN)];
+
+  if (matches.length > 0) {
+    const turns: DialogueTurn[] = [];
+    for (let i = 0; i < matches.length; i++) {
+      const match = matches[i];
+      const role = roleFromLabel(match[1]);
+      const start = (match.index ?? 0) + match[0].length;
+      const end = i + 1 < matches.length ? (matches[i + 1].index ?? normalized.length) : normalized.length;
+      const text = normalized.slice(start, end).trim();
+      if (text) turns.push({ role, text });
+    }
+    if (turns.length > 0) return turns;
+  }
+
+  const lines = normalized.split(/\n+/).filter((l) => l.trim());
   const turns: DialogueTurn[] = [];
 
   for (const line of lines) {

@@ -14,6 +14,8 @@ export const CONSENT_KEYWORDS = [
   "угу",
   "ну давайте",
   "интересно",
+  "ладно",
+  "алло",
 ];
 
 export const NO_TIME_KEYWORDS = [
@@ -163,6 +165,10 @@ export const OFFER_KEYWORDS = [
   "помогаем",
   "наш продукт",
   "наша услуга",
+  "искусственного интеллекта",
+  "отделе продаж",
+  "кейс по",
+  "хотела показать",
 ];
 
 export const QUALIFICATION_KEYWORDS = [

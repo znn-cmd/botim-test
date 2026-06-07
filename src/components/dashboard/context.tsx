@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, useCallback, type ReactNode } from "react";
-import { getMockCalls } from "@/lib/mock-data";
+import { createContext, useContext, useMemo, useState, useCallback, useEffect, type ReactNode } from "react";
 import { applyFilters, DEFAULT_FILTERS } from "@/lib/filters";
 import { calculateMetrics } from "@/lib/metrics";
+import { fetchSheetData } from "@/lib/sheet-loader";
 import type { ClassifiedCall, DashboardFilters, TabId } from "@/lib/types";
 
 interface DashboardContextValue {
@@ -17,11 +17,12 @@ interface DashboardContextValue {
   setActiveTab: (tab: TabId) => void;
   selectedCall: ClassifiedCall | null;
   setSelectedCall: (call: ClassifiedCall | null) => void;
-  isDemo: boolean;
   isLoading: boolean;
   error: string | null;
   lastUploadAt: Date | null;
-  loadCalls: (calls: ClassifiedCall[]) => void;
+  dataSource: "sheets" | "file";
+  loadCalls: (calls: ClassifiedCall[], source?: "sheets" | "file") => void;
+  refreshData: () => Promise<void>;
   setLoading: (v: boolean) => void;
   setError: (e: string | null) => void;
 }
@@ -29,14 +30,14 @@ interface DashboardContextValue {
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const [allCalls, setAllCalls] = useState<ClassifiedCall[]>(getMockCalls());
+  const [allCalls, setAllCalls] = useState<ClassifiedCall[]>([]);
   const [filters, setFiltersState] = useState<DashboardFilters>(DEFAULT_FILTERS);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [selectedCall, setSelectedCall] = useState<ClassifiedCall | null>(null);
-  const [isDemo, setIsDemo] = useState(true);
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUploadAt, setLastUploadAt] = useState<Date | null>(null);
+  const [dataSource, setDataSource] = useState<"sheets" | "file">("sheets");
 
   const setFilters = useCallback((f: Partial<DashboardFilters>) => {
     setFiltersState((prev) => ({ ...prev, ...f }));
@@ -46,12 +47,33 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setFiltersState(DEFAULT_FILTERS);
   }, []);
 
-  const loadCalls = useCallback((calls: ClassifiedCall[]) => {
+  const loadCalls = useCallback((calls: ClassifiedCall[], source: "sheets" | "file" = "file") => {
     setAllCalls(calls);
-    setIsDemo(false);
+    setDataSource(source);
     setLastUploadAt(new Date());
     setError(null);
   }, []);
+
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await fetchSheetData();
+      if (result.errors.length > 0) {
+        setError(result.errors.join("; "));
+        return;
+      }
+      loadCalls(result.calls, "sheets");
+    } catch (e) {
+      setError(`Ошибка загрузки: ${(e as Error).message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadCalls]);
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
 
   const filteredCalls = useMemo(() => applyFilters(allCalls, filters), [allCalls, filters]);
   const metrics = useMemo(() => calculateMetrics(filteredCalls), [filteredCalls]);
@@ -67,11 +89,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setActiveTab,
     selectedCall,
     setSelectedCall,
-    isDemo,
     isLoading,
     error,
     lastUploadAt,
+    dataSource,
     loadCalls,
+    refreshData,
     setLoading,
     setError,
   };

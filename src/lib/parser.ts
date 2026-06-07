@@ -80,7 +80,7 @@ function rowsToCalls(rows: Record<string, string>[]): ClassifiedCall[] {
   const rawCalls = rows
     .filter((row) => row["телефон"])
     .map((row, index) => {
-      const phone = row["телефон"] || `unknown-${index}`;
+      const phone = maskPhone(row["телефон"] || `unknown-${index}`);
       phoneCounts[phone] = (phoneCounts[phone] || 0) + 1;
 
       return {
@@ -147,15 +147,26 @@ export function parseXLSX(buffer: ArrayBuffer): ParseResult {
   return { calls, errors: [] };
 }
 
+function buildGoogleSheetsExportUrl(url: string): string {
+  const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!idMatch) return url;
+
+  const gidMatch = url.match(/[?&#]gid=(\d+)/);
+  const gid = gidMatch ? `&gid=${gidMatch[1]}` : "";
+  return `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv${gid}`;
+}
+
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length >= 4) return `+7***${digits.slice(-4)}`;
+  return phone;
+}
+
 export async function parseGoogleSheetsUrl(url: string): Promise<ParseResult> {
   try {
-    let fetchUrl = url;
-    if (url.includes("docs.google.com/spreadsheets")) {
-      const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-      if (idMatch) {
-        fetchUrl = `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv`;
-      }
-    }
+    const fetchUrl = url.includes("docs.google.com/spreadsheets")
+      ? buildGoogleSheetsExportUrl(url)
+      : url;
 
     const response = await fetch(fetchUrl);
     if (!response.ok) {
