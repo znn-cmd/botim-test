@@ -95,7 +95,11 @@ function DashboardContent() {
         {!isLoading && filteredCalls.length === 0 && (
           <div className="rounded-xl border border-slate-200 bg-white py-16 text-center">
             <p className="text-lg font-medium text-slate-700">Нет данных для отображения</p>
-            <p className="mt-1 text-sm text-slate-500">Загрузите CSV/XLSX или измените фильтры</p>
+            <p className="mt-1 text-sm text-slate-500">
+              {error
+                ? "Проверьте доступ к Google Sheets или загрузите CSV/XLSX вручную"
+                : "Данные загружаются из таблицы. Измените фильтры или нажмите «Обновить из таблицы»"}
+            </p>
           </div>
         )}
 

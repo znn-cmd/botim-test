@@ -9,7 +9,14 @@ npm install
 npm run dev
 ```
 
-Откройте [http://localhost:3000](http://localhost:3000). По умолчанию загружены демо-данные.
+Откройте [http://localhost:3000](http://localhost:3000). Данные загружаются из Google Sheets автоматически.
+
+## Источник данных
+
+Таблица: [calls_week_anon](https://docs.google.com/spreadsheets/d/18lZSxc5G6lhj9hoDgVZKMtrYDYzr2tJ692txym3L7oI/edit?gid=1903196005)
+
+**Важно:** для работы дашборда таблица должна быть доступна по ссылке:
+`Файл → Настройки доступа → Все, у кого есть ссылка → Читатель`
 
 ## Загрузка данных
 
